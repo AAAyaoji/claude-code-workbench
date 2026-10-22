@@ -1,0 +1,86 @@
+/* ============================================================
+   Design tokens
+   深色主题为默认;浅色主题见底部 [data-theme='light'] 覆盖。
+   所有视觉值只在此定义,组件样式一律引用变量。
+   ============================================================ */
+:root {
+  /* 基底(深色蓝灰分层) */
+  --bg-app: #0f1115;
+  --bg-surface: #15181f;
+  --bg-elevated: #1b1f27;
+  --bg-sidebar: #12141a;
+  --bg-hover: rgba(255, 255, 255, 0.045);
+  --bg-active: rgba(255, 255, 255, 0.08);
+
+  /* 边框 */
+  --border-subtle: #232833;
+  --border-strong: #2e3542;
+
+  /* 文字 */
+  --text-primary: #e7eaf0;
+  --text-secondary: #a0a8b8;
+  --text-muted: #667082;
+
+  /* 强调色(克制靛蓝) */
+  --accent: #5b8cff;
+  --accent-hover: #6f9aff;
+  --accent-fg: #ffffff;
+  --accent-subtle: rgba(91, 140, 255, 0.14);
+
+  /* 功能色 */
+  --success: #34c38b;
+  --warning: #e0a13d;
+  --error: #e05d5d;
+
+  /* 字体 */
+  --font-sans:
+    'Segoe UI', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'Cascadia Code', 'JetBrains Mono', Consolas, 'Courier New', monospace;
+
+  /* 字号 */
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+
+  /* 间距 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* 布局 */
+  --sidebar-width: 220px;
+
+  /* 阴影 */
+  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* 浅色主题(预留:后续在 <html data-theme="light"> 启用) */
+[data-theme='light'] {
+  --bg-app: #f5f6f8;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-sidebar: #eceef2;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-active: rgba(0, 0, 0, 0.07);
+  --border-subtle: #e2e5ea;
+  --border-strong: #cdd2da;
+  --text-primary: #1a1d23;
+  --text-secondary: #5a6270;
+  --text-muted: #8b93a1;
+  --accent: #3d6fe0;
+  --accent-hover: #3563c9;
+  --accent-fg: #ffffff;
+  --accent-subtle: rgba(61, 111, 224, 0.12);
+  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
