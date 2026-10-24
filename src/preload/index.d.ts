@@ -6,4 +6,4 @@ declare global {
   }
 }
 
-export type { SessionEvent, AppInfo, ClaudeStartArgs, Project, SessionInfo, SkillInfo, McpServerInfo, GitStatus, GitCommit, GitFileChange, AvatarKind } from './types'
+export type { SessionEvent, AppInfo, ClaudeStartArgs, Project, SessionInfo, HistoryMessage, SkillInfo, McpServerInfo, GitStatus, GitCommit, GitFileChange, AvatarKind } from './types'

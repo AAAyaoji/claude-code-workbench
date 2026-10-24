@@ -14,6 +14,8 @@ import { selectAvatarImage, setAvatar, resetAvatar, getAvatarDataUrl } from './a
 import type { AvatarKind } from './avatar'
 import { getProject, deleteProject } from './db'
 import { isDangerousPath, deleteProjectFolder } from './projectDelete'
+import { readSessionHistory, sessionFileExists } from './history'
+import type { HistoryMessage } from './history'
 
 export interface AppInfo {
   version: string
@@ -86,6 +88,12 @@ export function registerIpcHandlers(): void {
 
   // 会话列表
   ipcMain.handle('session:list', (): SessionRow[] => listSessions())
+
+  // 读取会话历史(只读,从 Claude Code 原始 .jsonl)
+  ipcMain.handle('session:history', (_event, args: { projectPath: string; sessionId: string }): HistoryMessage[] => {
+    if (!args || typeof args.projectPath !== 'string' || typeof args.sessionId !== 'string') return []
+    return readSessionHistory(args.projectPath, args.sessionId)
+  })
 
   // 删除会话记录(只删工作台数据库,保留 Claude Code 原始 .jsonl)
   ipcMain.handle('session:delete', (_event, args: { id: number }): void => {
@@ -190,6 +198,13 @@ export function registerIpcHandlers(): void {
       throw new Error('无效的项目目录')
     }
 
+    // 恢复会话前先校验原始 .jsonl 历史文件是否存在,避免对无效 sessionId 发起 --resume
+    if (args.resumeSessionId) {
+      if (!sessionFileExists(args.cwd, args.resumeSessionId)) {
+        throw new Error('会话历史文件不存在,无法恢复')
+      }
+    }
+
     const win = BrowserWindow.fromWebContents(event.sender)
     const session = new ClaudeSession({
       cwd: args.cwd,
@@ -222,7 +237,14 @@ export function registerIpcHandlers(): void {
     session.send(args.text)
   })
 
-  // 中断任务(终止进程)
+  // 中断当前回合(进程与会话保留,可继续发送消息)
+  ipcMain.handle('claude:interrupt', (_event, args: { sessionId: string }): void => {
+    const session = getSession(args?.sessionId)
+    if (!session) throw new Error('会话不存在')
+    session.interrupt()
+  })
+
+  // 终止进程(强制 kill,兜底用)
   ipcMain.handle('claude:stop', (_event, args: { sessionId: string }): void => {
     const session = getSession(args?.sessionId)
     if (!session) throw new Error('会话不存在')

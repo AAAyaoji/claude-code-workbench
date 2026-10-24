@@ -15,6 +15,8 @@ const api: WorkbenchApi = {
   deleteProjectFolder: (id: number) => ipcRenderer.invoke('project:delete-folder', { id }),
   listSessions: () => ipcRenderer.invoke('session:list'),
   deleteSession: (id: number) => ipcRenderer.invoke('session:delete', { id }),
+  getSessionHistory: (projectPath: string, sessionId: string) =>
+    ipcRenderer.invoke('session:history', { projectPath, sessionId }),
   listSkills: () => ipcRenderer.invoke('skills:list'),
   listMcpServers: () => ipcRenderer.invoke('mcp:list'),
   getGitStatus: (path: string) => ipcRenderer.invoke('git:status', { path }),
@@ -36,6 +38,7 @@ const api: WorkbenchApi = {
   claude: {
     start: (args: ClaudeStartArgs) => ipcRenderer.invoke('claude:start', args),
     send: (sessionId: string, text: string) => ipcRenderer.invoke('claude:send', { sessionId, text }),
+    interrupt: (sessionId: string) => ipcRenderer.invoke('claude:interrupt', { sessionId }),
     stop: (sessionId: string) => ipcRenderer.invoke('claude:stop', { sessionId }),
     end: (sessionId: string) => ipcRenderer.invoke('claude:end', { sessionId }),
     onEvent: (callback: (event: SessionEvent) => void) => {

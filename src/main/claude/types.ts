@@ -16,4 +16,4 @@ export type SessionEvent =
   | { type: 'tool_use'; sessionId: string; toolId: string; name: string; input: Record<string, unknown> }
   | { type: 'tool_result'; sessionId: string; toolId: string; isError: boolean; content: string }
   | { type: 'result'; sessionId: string; stopReason: string; costUsd: number }
-  | { type: 'exited'; sessionId: string; code: number | null }
+  | { type: 'exited'; sessionId: string; code: number | null; error?: string }

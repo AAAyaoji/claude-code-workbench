@@ -108,11 +108,23 @@ export function deleteProject(id: number): boolean {
 
 export function addSession(sessionId: string, projectId: number | null, title: string | null): void {
   const d = getDb()
-  d.prepare('INSERT INTO sessions (session_id, project_id, title) VALUES (?, ?, ?)').run(
-    sessionId,
-    projectId,
-    title
-  )
+  // 同一 session_id 已存在时更新而非另建一条记录,保证每个真实 Claude 会话只有一条元数据。
+  const existing = d.prepare('SELECT id FROM sessions WHERE session_id = ?').get(sessionId)
+  if (existing) {
+    d.prepare(
+      `UPDATE sessions
+       SET project_id = COALESCE(?, project_id),
+           title = COALESCE(?, title),
+           updated_at = datetime('now')
+       WHERE session_id = ?`
+    ).run(projectId, title, sessionId)
+  } else {
+    d.prepare('INSERT INTO sessions (session_id, project_id, title) VALUES (?, ?, ?)').run(
+      sessionId,
+      projectId,
+      title
+    )
+  }
 }
 
 export function listSessions(): SessionRow[] {

@@ -21,6 +21,9 @@ interface ChatTarget {
 export default function App() {
   const [view, setView] = useState<ViewId>('projects')
   const [chatTarget, setChatTarget] = useState<ChatTarget | null>(null)
+  // 会话实例标识:每次启动/恢复都 +1,作为 ChatView 的 key,强制重挂载,
+  // 避免 React 复用组件导致不同会话的消息/状态串线。
+  const [chatKey, setChatKey] = useState(0)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [lang, setLang] = useState<Lang>('zh')
   const [avatarUser, setAvatarUser] = useState<string | null>(null)
@@ -101,6 +104,7 @@ export default function App() {
   }
 
   function startProject(project: Project) {
+    setChatKey((k) => k + 1)
     setChatTarget({
       projectName: project.name,
       projectPath: project.path,
@@ -110,6 +114,7 @@ export default function App() {
 
   function resumeSession(session: SessionInfo) {
     if (!session.projectPath) return
+    setChatKey((k) => k + 1)
     setChatTarget({
       projectName:
         session.projectName ?? session.projectPath.split(/[\\/]/).filter(Boolean).pop() ?? '会话',
@@ -117,6 +122,7 @@ export default function App() {
       projectId: session.projectId ?? undefined,
       resumeSessionId: session.sessionId
     })
+    setView('projects')
   }
 
   function renderView() {
@@ -148,7 +154,6 @@ export default function App() {
   }
 
   function handleSelect(id: ViewId) {
-    setChatTarget(null)
     setView(id)
   }
 
@@ -157,19 +162,21 @@ export default function App() {
       <div className={styles.app}>
         <Sidebar active={view} onSelect={handleSelect} />
         <main className={styles.content}>
+          {view !== 'projects' || !chatTarget ? renderView() : null}
           {chatTarget ? (
-            <ChatView
-              projectName={chatTarget.projectName}
-              projectPath={chatTarget.projectPath}
-              projectId={chatTarget.projectId}
-              resumeSessionId={chatTarget.resumeSessionId}
-              avatarUser={avatarUser}
-              avatarClaude={avatarClaude}
-              onExit={() => setChatTarget(null)}
-            />
-          ) : (
-            renderView()
-          )}
+            <div className={view === 'projects' ? styles.chatLayer : `${styles.chatLayer} ${styles.hidden}`}>
+              <ChatView
+                key={chatKey}
+                projectName={chatTarget.projectName}
+                projectPath={chatTarget.projectPath}
+                projectId={chatTarget.projectId}
+                resumeSessionId={chatTarget.resumeSessionId}
+                avatarUser={avatarUser}
+                avatarClaude={avatarClaude}
+                onExit={() => setChatTarget(null)}
+              />
+            </div>
+          ) : null}
         </main>
       </div>
     </I18nContext.Provider>

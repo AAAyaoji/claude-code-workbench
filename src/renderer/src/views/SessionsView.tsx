@@ -3,6 +3,7 @@ import { MessageSquare, Trash2 } from 'lucide-react'
 import type { SessionInfo } from '../types'
 import { useI18n } from '../I18nContext'
 import ConfirmDialog from '../components/ConfirmDialog'
+import SessionHistoryView from '../components/SessionHistoryView'
 import styles from './SessionsView.module.css'
 
 interface SessionsViewProps {
@@ -15,6 +16,7 @@ export default function SessionsView({ onResume }: SessionsViewProps) {
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<SessionInfo | null>(null)
   const [error, setError] = useState('')
+  const [viewing, setViewing] = useState<SessionInfo | null>(null)
 
   const load = useCallback(() => {
     window.api
@@ -43,6 +45,16 @@ export default function SessionsView({ onResume }: SessionsViewProps) {
     }
   }
 
+  if (viewing) {
+    return (
+      <SessionHistoryView
+        session={viewing}
+        onBack={() => setViewing(null)}
+        onResume={() => onResume(viewing)}
+      />
+    )
+  }
+
   return (
     <div className={styles.view}>
       <header className={styles.header}>
@@ -64,13 +76,8 @@ export default function SessionsView({ onResume }: SessionsViewProps) {
       ) : (
         <ul className={styles.list}>
           {sessions.map((s) => {
-            const canResume = s.projectPath !== null
             return (
-              <li
-                key={s.id}
-                className={canResume ? styles.item : `${styles.item} ${styles.itemDisabled}`}
-                onClick={() => canResume && onResume(s)}
-              >
+              <li key={s.id} className={styles.item} onClick={() => setViewing(s)}>
                 <MessageSquare size={16} className={styles.itemIcon} />
                 <div className={styles.itemInfo}>
                   <span className={styles.itemTitle}>{s.title ?? t('sessions.untitled')}</span>

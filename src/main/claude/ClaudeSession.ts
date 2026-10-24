@@ -22,6 +22,7 @@ export class ClaudeSession {
   private sessionId: string | null = null
   private buffer = ''
   private emittedInit = false
+  private stderrTail = ''
 
   constructor(private readonly opts: ClaudeSessionOptions) {}
 
@@ -58,8 +59,8 @@ export class ClaudeSession {
       this.child = child
 
       child.stdout.on('data', (chunk: Buffer) => this.handleStdout(chunk.toString('utf8')))
-      // stderr 可能含敏感信息,不收集、不落日志、不转发 UI
-      child.stderr.on('data', () => {})
+      // stderr 可能含敏感信息:只保留末尾一小段用于诊断(发送前会脱敏),不落日志。
+      child.stderr.on('data', (chunk: Buffer) => this.collectStderr(chunk))
 
       child.on('error', (err) => {
         if (!settled) {
@@ -77,7 +78,13 @@ export class ClaudeSession {
       })
 
       child.on('exit', (code) => {
-        this.opts.onEvent({ type: 'exited', sessionId: this.sessionId ?? '', code })
+        this.opts.onEvent({
+          type: 'exited',
+          sessionId: this.sessionId ?? '',
+          code,
+          // 非零退出码才附带脱敏后的 stderr 摘要,帮助定位启动/恢复失败。
+          error: code !== 0 ? redactSecrets(this.stderrTail) : undefined
+        })
         this.opts.onExit(code)
         if (!settled) {
           settled = true
@@ -101,14 +108,40 @@ export class ClaudeSession {
     this.child.stdin.write(JSON.stringify(message) + '\n')
   }
 
-  /** 中断当前任务(立即终止进程) */
+  /** 中断当前回合(向 stdin 发 control_request,进程与会话保留,之后可继续发消息) */
+  interrupt(): void {
+    if (!this.child?.stdin?.writable) return
+    const frame = {
+      type: 'control_request',
+      request_id: `interrupt-${randomUUID()}`,
+      request: { subtype: 'interrupt', reason: 'user-cancel' }
+    }
+    this.child.stdin.write(JSON.stringify(frame) + '\n')
+  }
+
+  /** 终止进程(强制 kill,兜底用) */
   stop(): void {
     this.child?.kill()
   }
 
-  /** 优雅结束会话(关闭 stdin,让进程处理完退出) */
+  /** 优雅结束会话(关闭 stdin,让进程处理完退出);超时未退出则强制终止,避免残留进程 */
   end(): void {
-    this.child?.stdin?.end()
+    const child = this.child
+    if (!child) return
+    if (!child.stdin?.writable) {
+      // stdin 已不可写,直接强制终止兜底
+      child.kill()
+      return
+    }
+    const timer = setTimeout(() => child.kill(), 3000)
+    child.once('exit', () => clearTimeout(timer))
+    child.stdin.end()
+  }
+
+  /** 只保留 stderr 末尾一小段(用于退出时诊断),限制长度避免无限增长 */
+  private collectStderr(chunk: Buffer): void {
+    const MAX = 8192
+    this.stderrTail = (this.stderrTail + chunk.toString('utf8')).slice(-MAX)
   }
 
   private handleStdout(data: string): void {
@@ -210,4 +243,18 @@ export class ClaudeSession {
   private emit(event: SessionEvent): void {
     this.opts.onEvent(event)
   }
+}
+
+/** 尽力脱敏 stderr 中可能出现的 API Key / Token / 认证凭证,避免把敏感信息展示到 UI */
+function redactSecrets(text: string): string {
+  if (!text) return ''
+  return text
+    .replace(/\bsk-ant-[A-Za-z0-9_-]+/g, '[REDACTED]')
+    .replace(/\bsk-[A-Za-z0-9_-]{16,}/g, '[REDACTED]')
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
+    .replace(
+      /\b(ANTHROPIC_AUTH_TOKEN|ANTHROPIC_API_KEY|OPENAI_API_KEY|api[_-]?key)\b[ \t]*[=:][ \t]*\S+/gi,
+      '$1=[REDACTED]'
+    )
+    .trim()
 }
