@@ -1,0 +1,29 @@
+appId: com.claudecode.workbench
+productName: Claude Code Workbench
+directories:
+  buildResources: build
+  output: dist
+
+# 只打包构建产物与托盘图标;node_modules 由 electron-builder 按 dependencies 自动处理
+files:
+  - out/**/*
+  - build/tray-icon.png
+  - package.json
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.png
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Claude Code Workbench
+
+# 压缩:体积优先
+compression: normal
